@@ -1,0 +1,15 @@
+>Feature Ps_genome
+219	617	CDS
+			db_xref	COG:COG0012
+			gene	ychF_1
+			inference	ab initio prediction:Prodigal:002006
+			inference	similar to AA sequence:UniProtKB:P0ABU2
+			locus_tag	LZT29_00001
+			product	Ribosome-binding ATPase YchF
+827	1264	CDS
+			db_xref	COG:COG0582
+			gene	intS_1
+			inference	ab initio prediction:Prodigal:002006
+			inference	similar to AA sequence:UniProtKB:P37326
+			locus_tag	LZT29_00002
+			product	Prophage integrase IntS

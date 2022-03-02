@@ -1,0 +1,8 @@
+/target
+/*.prt
+/*.fa
+/*.txt
+/*.gff
+/*.tbl
+/*.fsa.fai
+/*.fsa
