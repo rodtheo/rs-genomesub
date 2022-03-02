@@ -22,6 +22,7 @@ use std::path::PathBuf;
 
 use protein_translate::translate;
 
+// Record name
 pub fn get_record_from_ena(response: Response) -> Result<Record, std::io::Error> {
     let reader = libflate::gzip::Decoder::new(response.into_reader()).unwrap();
 
