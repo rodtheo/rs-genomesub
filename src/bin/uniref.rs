@@ -3,9 +3,9 @@ extern crate uniprot;
 extern crate ureq;
 
 use bio::io::fasta::{self, IndexedReader, Record};
-use nom::error::dbg_dmp;
-use rs_genomesub::tbl::Feature;
-use uniprot::uniprot::DbReference;
+// use nom::error::dbg_dmp;
+// use rs_genomesub::tbl::Feature;
+// use uniprot::uniprot::DbReference;
 use ureq::Response;
 
 extern crate rs_genomesub;
@@ -16,9 +16,9 @@ use itertools::Itertools;
 use std::collections::HashMap;
 
 use std::fs::File;
-use std::io::Write;
+// use std::io::Write;
 use std::path::Path;
-use std::path::PathBuf;
+// use std::path::PathBuf;
 
 use protein_translate::translate;
 
@@ -151,9 +151,9 @@ fn main() {
 
     let mut output_fasta: Vec<fasta::Record> = Vec::new();
 
-    let fblastout = include_str!("../../output_diamond.txt");
+    let fblastout = include_str!("../../examples/output_diamond_sample.txt");
 
-    let (inp, res) = parse_input(fblastout).unwrap();
+    let (_inp, res) = parse_input(fblastout).unwrap();
 
     let path_fsa = Path::new("pantoea_genome_add_gene_feats.fsa");
 
@@ -190,7 +190,7 @@ fn main() {
 
             let reader = match req {
                 Ok(r) => get_record_from_ena(r),
-                Err(e) => {
+                Err(_e) => {
                     let query_url = format!(
                         // "https://www.uniprot.org/uniprot/{}.xml?include=yes&compress=yes",
                         "https://www.uniprot.org/uniref/UniRef90_{}.xml?include=yes&compress=yes",
@@ -230,7 +230,7 @@ fn main() {
                     output_fasta.push(rec.clone());
                     rec
                 }
-                Err(e) => panic!("Could find Record"),
+                Err(_e) => panic!("Could find Record"),
             };
 
             let ena_seq_str = std::str::from_utf8(ena.seq()).unwrap();
@@ -239,7 +239,7 @@ fn main() {
             let (tbl_bf2, chr_id2) = hash_tbl_feat.get(&bf2.qseqid).unwrap();
 
             assert_eq!(chr_id, chr_id2);
-            let mut boundary_seq_description;
+            let boundary_seq_description;
             let boundary_seq = if tbl_bf1.start < tbl_bf2.start {
                 boundary_seq_description = format!("{}:{}-{}", chr_id, tbl_bf1.start, tbl_bf2.end);
                 get_genomic_sequence(chr_id, tbl_bf1.start, tbl_bf2.end, &mut faidx)
@@ -256,7 +256,7 @@ fn main() {
 
             let boundary_seq_str = std::str::from_utf8(&boundary_seq).unwrap();
 
-            let chunks_diff = dissimilar::diff(ena_seq_str, boundary_seq_str);
+            let _chunks_diff = dissimilar::diff(ena_seq_str, boundary_seq_str);
 
             // println!("CHUNKS = {:?}", &chunks_diff);
             // ... process the Uniprot entry ...
@@ -269,7 +269,9 @@ fn main() {
     let mut writer = fasta::Writer::new(std::io::stdout());
 
     for r in output_fasta.iter() {
-        writer.write_record(r);
+        writer
+            .write_record(r)
+            .expect("Error while writing FASTA output");
     }
 
     // let query_url = format!(
