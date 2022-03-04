@@ -1,0 +1,1 @@
+initSidebarItems({"fn":[["main","Tool for processing NCBI .tbl file format."]]});

@@ -1,0 +1,3 @@
+(function() {var implementors = {};
+implementors["rs_genomesub"] = [{"text":"impl <a class=\"trait\" href=\"https://doc.rust-lang.org/1.59.0/core/fmt/trait.Display.html\" title=\"trait core::fmt::Display\">Display</a> for <a class=\"enum\" href=\"rs_genomesub/tbl/enum.FeatureType.html\" title=\"enum rs_genomesub::tbl::FeatureType\">FeatureType</a>","synthetic":false,"types":["rs_genomesub::tbl::FeatureType"]}];
+if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()
