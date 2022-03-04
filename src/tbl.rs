@@ -55,18 +55,18 @@ pub struct Feature {
 #[derive(Debug)]
 pub enum FeatureType {
     CDS,
-    gene,
-    tRNA,
-    undef,
+    Gene,
+    TRNA,
+    Undef,
 }
 
 impl fmt::Display for FeatureType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             FeatureType::CDS => write!(f, "CDS"),
-            FeatureType::gene => write!(f, "gene"),
-            FeatureType::tRNA => write!(f, "tRNA"),
-            FeatureType::undef => write!(f, "undefined"),
+            FeatureType::Gene => write!(f, "gene"),
+            FeatureType::TRNA => write!(f, "tRNA"),
+            FeatureType::Undef => write!(f, "undefined"),
         }
     }
 }
@@ -147,9 +147,9 @@ pub fn parse_input(input: &str) -> IResult<&str, Record> {
             let pseudo_end: u64 = end.parse().unwrap();
             let feat_type_enum = match feat_type {
                 "CDS" => FeatureType::CDS,
-                "gene" => FeatureType::gene,
-                "tRNA" => FeatureType::tRNA,
-                _ => FeatureType::undef,
+                "gene" => FeatureType::Gene,
+                "tRNA" => FeatureType::TRNA,
+                _ => FeatureType::Undef,
             };
 
             // Features that are on the complementary strand are indicated by reversing the invertal locations
@@ -203,7 +203,9 @@ pub fn parse_file(input: &str) -> IResult<&str, Reader> {
 impl Record {
     pub fn new<R: std::io::Read>(reader: &mut R) -> Self {
         let mut tbl_string = String::new();
-        reader.read_to_string(&mut tbl_string);
+        reader
+            .read_to_string(&mut tbl_string)
+            .expect("error while parsing record");
         let (_, parsed) = parse_input(&tbl_string[..]).unwrap();
         parsed
     }
@@ -236,7 +238,9 @@ impl Reader {
     /// ```
     pub fn new<R: std::io::Read>(reader: &mut R) -> Self {
         let mut tbl_string = String::new();
-        reader.read_to_string(&mut tbl_string);
+        reader
+            .read_to_string(&mut tbl_string)
+            .expect("Error while creating new record");
         let (_, parsed) = parse_file(&tbl_string[..]).unwrap();
         parsed
     }

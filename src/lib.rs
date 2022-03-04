@@ -1,5 +1,5 @@
 #![allow(dead_code)]
 
-pub mod blastTabular;
-pub mod protUtils;
+pub mod blast_tabular;
+pub mod prot_utils;
 pub mod tbl;

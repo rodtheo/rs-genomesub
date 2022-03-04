@@ -9,7 +9,7 @@ use uniprot::uniprot::DbReference;
 use ureq::Response;
 
 extern crate rs_genomesub;
-use crate::rs_genomesub::blastTabular::*;
+use crate::rs_genomesub::blast_tabular::*;
 use crate::rs_genomesub::tbl;
 
 use itertools::Itertools;

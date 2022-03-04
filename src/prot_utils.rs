@@ -1,23 +1,14 @@
 use multimap::MultiMap;
-use std::collections::HashMap;
 
 use nom::combinator::{map, opt};
 use nom::error::ErrorKind;
 use nom::IResult;
 use nom_regex::str::re_find;
 
-use nom::branch::alt;
-use nom::bytes::complete::{tag, take, take_till};
-use nom::character::complete::{
-    alphanumeric1, digit1, line_ending, multispace0, multispace1, newline, none_of,
-    not_line_ending, space0, space1, tab,
-};
-use nom::error::Error;
+use nom::bytes::complete::{tag, take_till};
+use nom::character::complete::{digit1, line_ending, newline, not_line_ending, space0, space1};
 use nom::multi::{many1, many_till, separated_list1};
-use nom::number::complete::{u16, u64};
 use nom::sequence::{terminated, tuple};
-
-use itertools::Itertools;
 
 #[derive(Debug, Default, Clone)]
 pub struct GeneticCodeTable<'a> {
@@ -48,7 +39,7 @@ fn till_aspas(s: &str) -> IResult<&str, &str> {
 pub fn parse_input(input: &str) -> IResult<&str, Vec<GeneticCodeTable>> {
     let comments = tuple((tag("--"), not_line_ending, line_ending));
 
-    let (input, (_, line_rest)) = many_till(comments, tag("\nGenetic-code-table ::= {\n"))(input)?;
+    let (input, (_, _line_rest)) = many_till(comments, tag("\nGenetic-code-table ::= {\n"))(input)?;
 
     let begin_bracket = tuple((space1, tag("{"), space0, newline));
 
@@ -109,7 +100,7 @@ pub fn parse_input(input: &str) -> IResult<&str, Vec<GeneticCodeTable>> {
             _,
             (_, _, _, _, prot, _, _, _, _),
             // _,
-            (_, _, _, starts),
+            (_, _, _, _starts),
             _,
             (_, _, _, base1),
             _,
@@ -169,7 +160,7 @@ mod tests {
     fn test_file_open() {
         let fblastout = include_str!("../gc2.prt");
 
-        let (inp, res) = parse_input(fblastout).unwrap();
+        let (_inp, res) = parse_input(fblastout).unwrap();
 
         for tb in res {
             let amino = tb.table.get_vec(&b'F').unwrap();

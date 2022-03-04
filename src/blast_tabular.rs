@@ -1,14 +1,11 @@
+#![allow(unused_imports)]
 use nom::combinator::{map, opt};
 use nom::error::ErrorKind;
 use nom::IResult;
 use nom_regex::str::re_find;
 
-use nom::branch::alt;
-use nom::bytes::complete::take;
-use nom::character::complete::{line_ending, multispace0, multispace1, newline, tab};
-use nom::error::Error;
-use nom::multi::{many1, separated_list1};
-use nom::number::complete::{u16, u64};
+use nom::character::complete::{line_ending, multispace1, tab};
+use nom::multi::many1;
 use nom::sequence::{terminated, tuple};
 
 use itertools::Itertools;
