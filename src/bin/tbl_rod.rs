@@ -91,7 +91,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     .set_attributes(Attributes::from(vec_attributes))
                     .build();
 
-                writer.write_record(&gff_record);
+                writer
+                    .write_record(&gff_record)
+                    .expect("Error writing gff record");
                 // println! {"{:?}\n\n", &feat}
             }
         }
