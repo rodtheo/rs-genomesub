@@ -18,7 +18,7 @@ use nom::Parser;
 use nom::{error::ErrorKind, Err};
 use nom_regex::str::re_find;
 use nom_unicode::complete::alphanumeric1;
-use noodles_gff::record::Strand;
+use noodles::gff::record::Strand;
 use ordered_multimap::list_ordered_multimap::ListOrderedMultimap;
 use std::fs::{self, File};
 use std::io::{self, Write};

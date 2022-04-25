@@ -1,4 +1,6 @@
 #![allow(unused_imports)]
+use std::cmp::Ordering;
+
 use nom::combinator::{map, opt};
 use nom::error::ErrorKind;
 use nom::IResult;
@@ -30,6 +32,26 @@ pub struct BlastFeature {
     pub qframe: i16,
     // btop Blast traceback operations(BTOP)*
     pub btop: String,
+}
+
+impl PartialEq for BlastFeature {
+    fn eq(&self, other: &Self) -> bool {
+        self.qseqid == other.qseqid
+    }
+}
+
+impl PartialOrd for BlastFeature {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        self.qstart.partial_cmp(&other.qstart)
+    }
+}
+
+impl Eq for BlastFeature {}
+
+impl Ord for BlastFeature {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.qstart.cmp(&other.qstart)
+    }
 }
 
 /// Utility function to nom parser that matches a string of characters up to a tab or new line
@@ -119,7 +141,7 @@ mod tests {
 
         let (inp, res) = parse_input(fblastout).unwrap();
 
-        dbg!(res);
+        // dbg!(res);
 
         // let res = Reader::from_file(path);
         assert_eq!(1, 1);
@@ -128,7 +150,10 @@ mod tests {
 
     #[test]
     fn test_iter() {
-        let fblastout = include_str!("../examples/output_diamond_sample.txt");
+        // let fblastout = include_str!("../examples/output_diamond_sample.txt");
+        // let fblastout = include_str!("../output_diamond.txt");
+        let fblastout = include_str!("../output_diamond_pantoea_polished.txt");
+        // let fblastout = include_str!("../output_diamond_poliv2.txt");
 
         let (inp, res) = parse_input(fblastout).unwrap();
 
@@ -141,10 +166,11 @@ mod tests {
         let count_possible_frameshifts = res
             .into_iter()
             .tuple_windows()
-            .filter(|(s1, s2)| (s1.sseqid == s2.sseqid) & (s2.qframe == 2))
+            .filter(|(s1, s2)| (s1.sseqid == s2.sseqid))
             .collect::<Vec<(BlastFeature, BlastFeature)>>();
 
-        dbg!(count_possible_frameshifts);
+        dbg!(&count_possible_frameshifts);
+        dbg!(count_possible_frameshifts.len());
 
         assert_eq!(1, 1);
     }

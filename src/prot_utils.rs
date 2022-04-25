@@ -20,6 +20,15 @@ pub struct GeneticCodeTable<'a> {
     table: MultiMap<u8, Vec<u8>>,
 }
 
+///  Reverse Translate accepts a protein sequence as input and uses
+/// a codon usage table to generate a DNA sequence representing the
+/// most likely non-degenerate coding sequence.
+/// A consensus sequence derived from all the possible codons
+/// for each amino acid is also returned.
+trait ReverseTranslate {
+    fn reverse_translate(prot_seq: &[u8], codon_table: &GeneticCodeTable) -> String;
+}
+
 /// Utility function to nom parser that matches a string of characters up to a tab or new line
 fn everything_but_tab_or_nl(input: &str) -> IResult<&str, String> {
     let re = regex::Regex::new(r"[^\t\n]+").unwrap();
