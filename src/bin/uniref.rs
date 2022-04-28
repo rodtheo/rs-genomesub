@@ -229,12 +229,12 @@ fn main() {
                 .required(true),
         )
         .arg(
-            Arg::new("vcf_out")
-                .value_name("VCF_OUT")
-                .help("Specify the output VCF file name.")
+            Arg::new("assembly_out")
+                .value_name("ASSEMBLY_OUT")
+                .help("Specify the output FASTA file name.")
                 .takes_value(true)
-                .short('v')
-                .long("vcf")
+                .short('o')
+                .long("out-assembly")
                 .required(true),
         )
         .arg(arg!(
@@ -257,6 +257,22 @@ fn main() {
         .set_thread_mode(ThreadLogMode::Both)
         .build();
 
+
+    let input_path_tbl_str = matches.value_of("tbl_in").unwrap();
+    let input_path_genome_str = matches.value_of("assembly").unwrap();
+    let input_path_genes_str = matches.value_of("genes_in").unwrap();
+    let input_path_diamond_str = matches.value_of("diamond_in").unwrap();
+    let output_path_assembly_str = matches.value_of("assembly_out").unwrap();
+    let n_threads = matches.value_of("threads").unwrap();
+    
+    let output_path_genome = std::path::Path::new(&output_path_assembly_str);
+    let prefix = output_path_genome.parent().unwrap();
+    std::fs::create_dir_all(prefix).unwrap();
+
+    let mut out_log = PathBuf::from(&output_path_assembly_str);
+    out_log.set_file_name("framerust.log");
+    let out_log_file = Path::new(&out_log);
+
     CombinedLogger::init(vec![
         TermLogger::new(
             LevelFilter::Info,
@@ -267,17 +283,12 @@ fn main() {
         WriteLogger::new(
             LevelFilter::Info,
             Config::default(),
-            File::create("my_rust_binary.log").unwrap(),
+            File::create(out_log_file).unwrap(),
         ),
     ])
     .unwrap();
 
-    let input_path_tbl_str = matches.value_of("tbl_in").unwrap();
-    let input_path_genome_str = matches.value_of("assembly").unwrap();
-    let input_path_genes_str = matches.value_of("genes_in").unwrap();
-    let input_path_diamond_str = matches.value_of("diamond_in").unwrap();
-    let input_path_vcf_str = matches.value_of("vcf_out").unwrap();
-    let n_threads = matches.value_of("threads").unwrap();
+    
 
     std::env::set_var("RAYON_NUM_THREADS", n_threads);
 
@@ -329,16 +340,19 @@ fn main() {
     let (_inp, res) = parse_input(&fblastout).unwrap();
 
     let input_path_genome = PathBuf::from(&input_path_genome_str);
-    let mut output_path_genome = PathBuf::from(&input_path_genome_str);
+    // let mut output_path_genome = PathBuf::from(&input_path_genome_str);
     let path_fsa = Path::new(&input_path_genome);
 
     // let mut faidx = IndexedReader::from_file(&path_fsa).unwrap();
     // let mut faidx = Arc::new(Mutex::new(IndexedReader::from_file(&path_fsa).unwrap()));
     // let faidx = Arc::new(IndexedReader::from_file(&path_fsa).unwrap());
-
-    let input_path_vcf = PathBuf::from(&input_path_vcf_str);
-    let ofile = File::create(input_path_vcf).expect("Unable to create file");
-    let mut writer_vcf = vcf::Writer::new(ofile);
+    // warn!("OUTPUT PATH = {}",&output_path_assembly_str);
+    
+    
+    // output_path_genome.set_file_name("out_cor.fasta");
+    let output_assembly = File::create(output_path_genome).unwrap();
+    // let ofile = File::create(output_path_genome).expect("Unable to create file to write output sequences.");
+    // let mut writer_vcf = vcf::Writer::new(ofile);
 
     // let count_possible_frameshifts = res
     //     .into_iter()
@@ -424,13 +438,15 @@ fn main() {
             el_peek = iter_frames.next();
         }
 
-
-        grouped_frames.push(inner_grouped);
+        // if inner_grouped.len() > 0 {
+            grouped_frames.push(inner_grouped);
+        // }
+        
     }
     
     // let fg = grouped_frames.iter().map(|x| x)
                 // .filter(|v| v.len() > 1);
-    dbg!(&grouped_frames);
+    // dbg!(&grouped_frames);
     // dbg!(count_pos);
 
     // let count_possible_frameshifts = res
@@ -463,10 +479,10 @@ fn main() {
     //     .build_global()
     //     .unwrap();
 
-    count_possible_frameshifts
+    grouped_frames
         .par_iter()
         .enumerate()
-        .for_each(|(i, (bf1, bf2))| {
+        .for_each(|(i, blast_features)| {
             // https://stackoverflow.com/questions/30559073/cannot-borrow-captured-outer-variable-in-an-fn-closure-as-mutable
             // for (i, (bf1, bf2)) in count_possible_frameshifts.iter().enumerate() {
             // let faidx_child = faidx.clone();
@@ -475,11 +491,13 @@ fn main() {
             let seqs_to_change_child = seqs_to_change_ref.clone();
             let output_fasta_hash_child = output_fasta_hash.clone();
             let mut faidx_child = IndexedReader::from_file(&path_fsa).unwrap();
-
-            info!(
-                "Processing adjacent gene pair {}/{}: {} + {} that have matched {}.",
+            let (bf1, bf2) = &blast_features[0];
+            
+            debug!(
+                "Processing {} adjacent gene pair {}/{}: {} + {} that have matched {}.",
+                &blast_features.len(),
                 &i,
-                &count_possible_frameshifts.len(),
+                &grouped_frames.len(),
                 &bf1.qseqid,
                 &bf2.qseqid,
                 &bf1.sseqid
@@ -494,7 +512,7 @@ fn main() {
 
                 let visual_url = format!("https://www.uniprot.org/uniprot/{}", &query);
 
-                info!(
+                debug!(
                     "Performing an HTTP GET request against {} to retrieve DNA sequence for entry {}.",
                     &visual_url, &bf1.sseqid
                 );
@@ -564,12 +582,39 @@ fn main() {
                     //     contigs.insert(chr_id);
                     // }
 
+
                     let mut boundary_seq_start =
-                        min!(tbl_bf1.start, tbl_bf2.start, tbl_bf1.end, tbl_bf2.end);
-                    let mut boundary_seq_end =
-                        max!(tbl_bf1.start, tbl_bf2.start, tbl_bf1.end, tbl_bf2.end);
+                        blast_features.clone().into_iter().fold(Vec::new(), |mut acc, (bf1, bf2)| {
+                            let (tbl_bf1, chr_id) = hash_tbl_feat
+                                .get(&bf1.qseqid)
+                                .expect(&format!("Gene {} is note a Key in gene dict", &bf1.qseqid));
+                            let (tbl_bf2, chr_id2) = hash_tbl_feat
+                                .get(&bf2.qseqid)
+                                .expect(&format!("Gene {} is note a Key in gene dict", &bf1.qseqid));
+                            acc.push(tbl_bf1.start);
+                            acc.push(tbl_bf2.start);
+                            acc}).into_iter().min().unwrap();
+                    
+                        // min!(tbl_bf1.start, tbl_bf2.start, tbl_bf1.end, tbl_bf2.end);
+                    let mut boundary_seq_end = blast_features.iter().fold(Vec::new(), |mut acc_n, (bf1, bf2)| {
+                        let (tbl_bf1, chr_id) = hash_tbl_feat
+                            .get(&bf1.qseqid)
+                            .expect(&format!("Gene {} is note a Key in gene dict", &bf1.qseqid));
+                        let (tbl_bf2, chr_id2) = hash_tbl_feat
+                            .get(&bf2.qseqid)
+                            .expect(&format!("Gene {} is note a Key in gene dict", &bf1.qseqid));
+                        acc_n.push(tbl_bf1.end);
+                        acc_n.push(tbl_bf2.end);
+                        acc_n}).into_iter().max().unwrap();
+                        
                     let boundary_seq_description =
                         format!("{}:{}-{}", chr_id, boundary_seq_start, boundary_seq_end);
+
+                    // if blast_features.len() > 1 {
+                    //         dbg!("########## VEC > 1");
+                    //         dbg!(&boundary_seq_description);
+                    //         dbg!(&blast_features);
+                    //     }
 
                     // // Sparse alignment from kmer matches
                     // let mut chr_seq = Vec::new();
@@ -592,8 +637,8 @@ fn main() {
 
                     let mut boundary_seq = get_genomic_sequence(
                         chr_id,
-                        boundary_seq_start,
-                        boundary_seq_end,
+                        boundary_seq_start.clone(),
+                        boundary_seq_end.clone(),
                         // start_y.clone() as u64,
                         // end_y.clone() as u64,
                         &mut faidx_child,
@@ -630,7 +675,22 @@ fn main() {
                     let mut alignment = aligner.semiglobal(&boundary_seq, ena.seq());
 
                     let mut score_normalized =
+                        
                         f64::from(alignment.score) / f64::from(boundary_seq.len() as i32);
+
+                    let (match_count, mismatch_count) =
+                        alignment.operations
+                            .iter()
+                            .fold((0, 0), |(matches, mismatches), x| match x {
+                                Match => (matches + 1, mismatches),
+                                Subst => (matches, mismatches + 1),
+                                Del => (matches, mismatches),
+                                Ins => (matches, mismatches),
+                                Xclip(_) => (matches, mismatches),
+                                Yclip(_) => (matches, mismatches),
+                            });
+
+                    let gap_free_for = (match_count as f64) / (match_count as f64 + mismatch_count as f64);
 
                     let boundary_seq_rev: Vec<u8> = dna::revcomp(&boundary_seq);
 
@@ -638,72 +698,100 @@ fn main() {
 
                     let score_normalized_rev =
                         f64::from(alignment_rev.score) / f64::from(boundary_seq_rev.len() as i32);
-
-                    debug!(
+                    
+                    let (match_count_rev, mismatch_count_rev) =
+                        alignment_rev.operations
+                            .iter()
+                            .fold((0, 0), |(matches, mismatches), x| match x {
+                                Match => (matches + 1, mismatches),
+                                Subst => (matches, mismatches + 1),
+                                Del => (matches, mismatches),
+                                Ins => (matches, mismatches),
+                                Xclip(_) => (matches, mismatches),
+                                Yclip(_) => (matches, mismatches),
+                            });
+                    
+                    let gap_free_rev = (match_count_rev as f64) / (match_count_rev as f64 + mismatch_count_rev as f64);
+                    
+                    warn!(
                         "Score normalized by query length FORWARD = {:.2}, REV = {:.2}",
                         &score_normalized, &score_normalized_rev,
                     );
 
+                    warn!(
+                        "GAP FREE Score normalized by query length FORWARD = {:.2}, REV = {:.2}",
+                        &gap_free_for, &gap_free_rev,
+                    );
+
                     let mut is_revcomp = false;
 
-                    if (score_normalized_rev >= 0.95 && score_normalized <= 0.95) {
+                    // if (score_normalized_rev >= 0.95 && score_normalized <= 0.95) {
+                    if (gap_free_rev >= 0.95 && gap_free_for <= 0.95) {
                         alignment = alignment_rev;
                         boundary_seq = boundary_seq_rev;
                         is_revcomp = true;
                     }
 
-                    if (alignment.ylen > alignment.xlen + 30) {
-                        dbg!("BEEEFORE ADJUSTING");
-                            dbg!(&alignment.xstart);
-                            dbg!(&alignment.ystart);
-                            dbg!(&alignment.xend);
-                            dbg!(&alignment.yend);
+                    // if (alignment.ylen > alignment.xlen + 30) {
+                    //     dbg!("BEEEFORE ADJUSTING");
+                    //     dbg!(&alignment.ylen);
+                    //     dbg!(&alignment.xlen);
+                    //     dbg!(&alignment.xstart);
+                    //     dbg!(&alignment.ystart);
+                    //     dbg!(&alignment.xend);
+                    //     dbg!(&alignment.yend);
+                    //     dbg!(&boundary_seq_start);
+                    //     dbg!(&boundary_seq_end);
 
-                        if is_revcomp {
-                            boundary_seq_end = boundary_seq_end + ((alignment.ystart - alignment.xstart) as u64);
-                            boundary_seq_start = boundary_seq_start - ((alignment.yend - alignment.xend) as u64);;
-                        } else {
-                            boundary_seq_end = boundary_seq_end + ((alignment.yend - alignment.xend) as u64);
-                            boundary_seq_start = boundary_seq_start - ((alignment.ystart - alignment.xstart) as u64);
-                        }
-
-
-                        boundary_seq = get_genomic_sequence(
-                            chr_id,
-                            boundary_seq_start,
-                            boundary_seq_end,
-                            // start_y.clone() as u64,
-                            // end_y.clone() as u64,
-                            &mut faidx_child,
-                        );
-
-                        if is_revcomp {
-                            boundary_seq = dna::revcomp(&boundary_seq);
-                        }
-
-                        // x is the query or read sequence and y is the reference or template sequence.
-                        aligner =
-                            Aligner::with_capacity(boundary_seq.len(), ena.seq().len(), -5, -1, &score);
-
-                        alignment = aligner.semiglobal(&boundary_seq, ena.seq());
-
-                        score_normalized =
-                            f64::from(alignment.score) / f64::from(boundary_seq.len() as i32);
+                    //     if is_revcomp {
+                    //         dbg!("IS REV");
+                    //         boundary_seq_end = boundary_seq_end.clone() + ((alignment.ystart - alignment.xstart) as u64);
+                    //         boundary_seq_start = boundary_seq_start.clone() - ((alignment.ylen - alignment.xlen) as u64);
+                    //     } else {
+                    //         boundary_seq_end = boundary_seq_end.clone() + ((alignment.ylen - alignment.xlen) as u64);
+                    //         boundary_seq_start = boundary_seq_start.clone() - ((alignment.ystart - alignment.xstart) as u64);
+                    //     }
 
 
-                            dbg!("AAAFTER ADJUSTING");
-                            dbg!(&alignment.xstart);
-                            dbg!(&alignment.ystart);
-                            dbg!(&alignment.xend);
-                            dbg!(&alignment.yend);
-                            // dbg!("Genes: {} + {} => {}", &bf1.qseqid, &bf2.qseqid, &ena.id());
+                    //     boundary_seq = get_genomic_sequence(
+                    //         chr_id,
+                    //         boundary_seq_start.clone(),
+                    //         boundary_seq_end.clone(),
+                    //         // start_y.clone() as u64,
+                    //         // end_y.clone() as u64,
+                    //         &mut faidx_child,
+                    //     );
+
+                    //     if is_revcomp {
+                    //         boundary_seq = dna::revcomp(&boundary_seq);
+                    //     }
+
+                    //     // x is the query or read sequence and y is the reference or template sequence.
+                    //     aligner =
+                    //         Aligner::with_capacity(boundary_seq.len(), ena.seq().len(), -5, -1, &score);
+
+                    //     alignment = aligner.semiglobal(&boundary_seq, ena.seq());
+
+                    //     score_normalized =
+                    //         f64::from(alignment.score) / f64::from(boundary_seq.len() as i32);
+
+
+                    //         dbg!("AAAFTER ADJUSTING");
+                    //         dbg!(&alignment.xstart);
+                    //         dbg!(&alignment.ystart);
+                    //         dbg!(&alignment.xend);
+                    //         dbg!(&alignment.yend);
+                    //         dbg!(&boundary_seq_start);
+                    //         dbg!(&boundary_seq_end);
+                    //         dbg!("Genes: {} + {} => {}", &bf1.qseqid, &bf2.qseqid, &ena.id());
                             
-                    }
+                    // }
 
-                    if (score_normalized >= 0.95 || score_normalized_rev >= 0.95) {
-                        info!("Genes: {} + {} => {}", &bf1.qseqid, &bf2.qseqid, &ena.id());
-                        debug!("{}", &alignment.score);
-                        debug!("{}", boundary_seq.len());
+                    // if (score_normalized >= 0.95 || score_normalized_rev >= 0.95) {
+                    if (gap_free_for >= 0.95 || gap_free_rev >= 0.95) {
+                        debug!("Genes: {} + {} => {}", &bf1.qseqid, &bf2.qseqid, &ena.id());
+                        // debug!("{}", &alignment.score);
+                        // debug!("{}", boundary_seq.len());
                         
                         let pos = alignment
                             .operations
@@ -714,12 +802,20 @@ fn main() {
                                 Del => true,
                                 _ => false,
                             })
-                            .map(|(index, s)| {
+                            .filter_map(|(mut index, s)| {
                                 // let mut altbases = String::new();
                                 // altbases.push(ena.seq()[alignment.ystart + index] as char);
                                 // altbases.push(boundary_seq[index] as char);
+                                if alignment.ystart + index >= ena.seq().len() {
+                                    return None
+                                }
 
-                                (
+                                if index >= boundary_seq.len() {
+                                    return None
+                                }
+
+                                Some(
+                                    (
                                     // we're dealing with glocal alignment, therefore, the sequecence y
                                     // can start after first base
                                     ena.id(),
@@ -730,6 +826,7 @@ fn main() {
                                     // boundary_seq_start + index as u64,
                                     (alignment.xstart + index) as u64 + boundary_seq_start - 1,
                                     alignment.xstart + index,
+                                    )
                                 )
                             })
                             .filter(|(ena_id, pos, _, _, _, _, _)| {
@@ -782,7 +879,7 @@ fn main() {
                                 }
                             }
 
-                            dbg!("RES VARIANTS VECTOR = {:?}", &res_all);
+                            debug!("RES VARIANTS VECTOR = {:?}", &res_all);
                             vcf_records = res_all
                                 .iter()
                                 .map(|vars| {
@@ -892,9 +989,9 @@ fn main() {
                                     
                                     output_fasta_hash.insert(ena_id);
                                 }
-                                output_fasta.push(ena.clone());
-                                output_fasta.push(boundary_cor_seqs);
-                                output_fasta.push(record_bondary);
+                                // output_fasta.push(ena.clone());
+                                // output_fasta.push(boundary_cor_seqs);
+                                // output_fasta.push(record_bondary);
                                 // if let Some(debug) = matches.value_of("debug") {
                                 //     match hash_cds_fasta.get(&bf1.qseqid) {
                                 //         Some(record) => output_fasta.push(record.clone()),
@@ -941,12 +1038,12 @@ fn main() {
                                         operation,
                                         is_revcomp,
                                     );
-                                    let start_assembly = boundary_seq_start;
-                                    let end_assembly = boundary_seq_end;
+                                    // let start_assembly = boundary_seq_start;
+                                    // let end_assembly = boundary_seq_end;
                                     BoundarySeq {
                                         contig: chr_id.parse().unwrap(),
-                                        start_assembly,
-                                        end_assembly,
+                                        start_assembly: boundary_seq_start.clone(),
+                                        end_assembly: boundary_seq_end.clone(),
                                         boundary_cor_seq,
                                     }
                                 });
@@ -958,9 +1055,18 @@ fn main() {
                             }
                         }
 
+                        let joined_genes =
+                        blast_features.clone().into_iter().fold(HashSet::new(), |mut acc, (bf1, bf2)| {
+                            acc.insert(bf1.qseqid);
+                            acc.insert(bf2.qseqid);
+                            acc});
+
+                        warn!(
+                            "Fixing INS/DEL between {:?} genes, in order to avoid disrupting frameshifts.", &joined_genes
+                        )
                         // https://stackoverflow.com/questions/62253011/advance-next-to-peek-with-multipeek
                         // https://stackoverflow.com/questions/37684444/rust-iterators-and-looking-forward-peek-multipeek
-                        debug!("{:?}", &pos);
+                        // debug!("{:?}", &pos);
                     } else {
                         warn!(
                             "The pair {} and {} should remain as two separate CDS.",
@@ -979,8 +1085,8 @@ fn main() {
             }
         });
 
-    // dbg!("FASTA IS POISONED = ", output_fasta_ref.is_poisoned());
-    // dbg!("VCF IS POISONED = ", vcf_records_to_write_ref.is_poisoned());
+    dbg!("FASTA IS POISONED = ", output_fasta_ref.is_poisoned());
+    dbg!("VCF IS POISONED = ", vcf_records_to_write_ref.is_poisoned());
 
     let output_fast_to_write = output_fasta_ref.lock().unwrap();
 
@@ -990,7 +1096,10 @@ fn main() {
     );
 
     if matches.is_present("debug") {
-        let debug_fasta = File::create("debug.fasta").unwrap();
+        info!("Writing {} records to debug.fasta", &output_fast_to_write.len());
+        let mut out_debug = PathBuf::from(&output_path_assembly_str);
+        out_debug.set_file_name("debug.fasta");
+        let debug_fasta = File::create(out_debug).unwrap();
         let mut writer = fasta::Writer::new(debug_fasta);
 
         for r in output_fast_to_write.iter() {
@@ -1016,14 +1125,14 @@ fn main() {
         }
     }
 
-    let header_final = header.build();
-    writer_vcf
-        .write_header(&header_final)
-        .expect("Coldnt write VCF file contig header.");
+    // let header_final = header.build();
+    // writer_vcf
+    //     .write_header(&header_final)
+    //     .expect("Coldnt write VCF file contig header.");
 
-    for vcf_rec in vcf_records_to_write.iter() {
-        writer_vcf.write_record(&vcf_rec);
-    }
+    // for vcf_rec in vcf_records_to_write.iter() {
+    //     writer_vcf.write_record(&vcf_rec);
+    // }
 
     let mut seqs_to_change = seqs_to_change_ref.lock().unwrap();
     seqs_to_change.par_sort_by(|a, b| b.start_assembly.cmp(&a.start_assembly));
@@ -1056,8 +1165,7 @@ fn main() {
         }
     }
 
-    output_path_genome.set_file_name("out_cor.fasta");
-    let output_assembly = File::create(output_path_genome).unwrap();
+    
     let mut writer_cor = fasta::Writer::new(output_assembly);
     info!("Writing new assembly");
     for r in new_fasta_assembly.iter() {
