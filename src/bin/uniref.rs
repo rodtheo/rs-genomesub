@@ -1167,12 +1167,14 @@ fn main() {
 
     
     let mut writer_cor = fasta::Writer::new(output_assembly);
-    info!("Writing new assembly");
+    
     for r in new_fasta_assembly.iter() {
         writer_cor
             .write_record(r)
             .expect("Error while writing FASTA output");
     }
+
+    info!("Writing new assembly");
     // dbg!(&seqs_to_change);
 
     // let query_url = format!(
