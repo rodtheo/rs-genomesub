@@ -350,7 +350,7 @@ fn main() -> Result<(), std::io::Error> {
     
     
     // output_path_genome.set_file_name("out_cor.fasta");
-    let output_assembly = File::create(output_path_genome).unwrap();
+    
     // let ofile = File::create(output_path_genome).expect("Unable to create file to write output sequences.");
     // let mut writer_vcf = vcf::Writer::new(ofile);
 
@@ -1166,7 +1166,7 @@ fn main() -> Result<(), std::io::Error> {
     }
 
     // info!("Writing new assembly at {:?}", &output_assembly);
-    
+    let output_assembly = File::create(output_path_genome).unwrap();
     let mut writer_cor = fasta::Writer::new(output_assembly);
     
     for r in new_fasta_assembly.iter() {

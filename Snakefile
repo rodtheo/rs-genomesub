@@ -86,11 +86,11 @@ rule fixing_frameshift:
 	threads:
 		8
 	output:
-		cor="results_{assembly}/framerust_res/{assembly}_fixed.fa",
+		assembly="results_{assembly}/framerust_res/{assembly}_fixed.fa",
 		debug_seq="results_{assembly}/framerust_res/debug.fa"
 	shell:
 		"./target/debug/uniref --debug -a {input.genome} \
-		-b {input.diamond} -g {input.genes} -o {output.cor} \
+		-b {input.diamond} -g {input.genes} -o {output.assembly} \
 		{input.tbl} -t {threads}"
 
 rule prokka_new_annotation:
