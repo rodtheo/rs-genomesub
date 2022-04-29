@@ -1,3 +1,4 @@
 ASSEMBLIES: ["genome_A", "genome_B"]
-DIAMOND_DB: "databases/nr_uniref90_PAM30"
+DIAMOND_DB: "nr_uniref90_PAM30"
+DIAMOND_DB_DIR_PARENT: "/array3/rodtheo/databases/"
 ID_U: "1027"

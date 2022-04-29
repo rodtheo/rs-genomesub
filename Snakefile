@@ -5,6 +5,7 @@ configfile: "config.yaml"
 WORKDIR = os.getcwd()
 ASSEMBLIES = config["ASSEMBLIES"]
 DIAMOND_DB = config["DIAMOND_DB"]
+DIAMOND_DB_DIR = config["DIAMOND_DB_DIR_PARENT"]
 ID_U = config["ID_U"]
 
 rule all:
@@ -62,11 +63,12 @@ rule diamond_search:
 		"results_{assembly}/prokka_initial/output_diamond.txt"
 	params:
 		diamonddb=DIAMOND_DB,
-		id_user=ID_U
+		id_user=ID_U,
+		diamonddb_dir=DIAMOND_DB_DIR
 	threads:
 		12
 	shell:
-		"docker run --user {params.id_user}:{params.id_user} -v $(pwd):/db --rm diamond blastx -d /db/{params.diamonddb} \
+		"docker run --user {params.id_user}:{params.id_user} -v {params.diamonddb_dir}:/dbnr -v $(pwd):/db --rm diamond blastx -d /dbnr/{params.diamonddb} \
 		-q /db/{input.genes} -F 15 -p {threads} \
 		--matrix PAM30 -e 1e-20 -k 1 -o /db/{output} \
 		--fast --outfmt 6 qseqid stitle sseqid qstart qend sstart send qframe btop"
