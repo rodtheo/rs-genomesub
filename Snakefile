@@ -2,7 +2,8 @@ import os
 
 ASSEMBLIES = ["genome_A", "genome_B"]
 WORKDIR = os.getcwd()
-DIAMOND_DB = "databases/pantoea_cor.faa"
+DIAMOND_DB = "databases/nr_uniref90_PAM30"
+ID_U = "1027"
 
 
 rule all:
@@ -21,11 +22,12 @@ rule prokka_annotation:
 		outdir="results_{assembly}/prokka_initial",
 		PREFIX="{assembly}_sprok",
 		pwd=WORKDIR,
+		id_user=ID_U
 	output:
 		"results_{assembly}/prokka_initial/{assembly}_sprok.tbl",
 		"results_{assembly}/prokka_initial/{assembly}_sprok.fsa"
 	shell:
-		"docker run --rm --user 1000:1000 -v {params.pwd}:/db staphb/prokka:latest prokka \
+		"docker run --rm --user {params.id_user}:{params.id_user} -v {params.pwd}:/db staphb/prokka:latest prokka \
 		--force --kingdom Bacteria \
 		--outdir /db/{params.outdir} --prefix {params.PREFIX} \
 		--genus Pantoea --locustag LZP \
@@ -58,11 +60,12 @@ rule diamond_search:
 	output:
 		"results_{assembly}/prokka_initial/output_diamond.txt"
 	params:
-		diamonddb=DIAMOND_DB
+		diamonddb=DIAMOND_DB,
+		id_user=ID_U
 	threads:
 		12
 	shell:
-		"docker run --user 1000:1000 -v $(pwd):/db --rm diamond blastx -d /db/{params.diamonddb} \
+		"docker run --user {params.id_user}:{params.id_user} -v $(pwd):/db --rm diamond blastx -d /db/{params.diamonddb} \
 		-q /db/{input.genes} -F 15 -p {threads} \
 		--matrix PAM30 -e 1e-20 -k 1 -o /db/{output} \
 		--fast --outfmt 6 qseqid stitle sseqid qstart qend sstart send qframe btop"
@@ -90,11 +93,12 @@ rule prokka_new_annotation:
 		outdir="results_{assembly}/prokka_corrected",
 		PREFIX="{assembly}_eprok",
 		pwd=WORKDIR,
+		id_user=ID_U
 	output:
 		"results_{assembly}/prokka_corrected/{assembly}_eprok.tbl",
 		"results_{assembly}/prokka_corrected/{assembly}_eprok.fsa"
 	shell:
-		"docker run --rm --user 1000:1000 -v {params.pwd}:/db staphb/prokka:latest prokka \
+		"docker run --rm --user {params.id_user}:{params.id_user} -v {params.pwd}:/db staphb/prokka:latest prokka \
 		--force --kingdom Bacteria \
 		--outdir /db/{params.outdir} --prefix {params.PREFIX} \
 		--genus Pantoea --locustag LZP \
