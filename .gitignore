@@ -10,3 +10,4 @@
 /results_*
 /databases
 .snakemake
+nohup.out
