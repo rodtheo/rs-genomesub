@@ -1,10 +1,11 @@
 import os
 
-ASSEMBLIES = ["genome_A", "genome_B"]
-WORKDIR = os.getcwd()
-DIAMOND_DB = "databases/nr_uniref90_PAM30"
-ID_U = "1027"
+configfile: "config.yaml"
 
+WORKDIR = os.getcwd()
+ASSEMBLIES = config["ASSEMBLIES"]
+DIAMOND_DB = config["DIAMOND_DB"]
+ID_U = config["ID_U"]
 
 rule all:
 	input:

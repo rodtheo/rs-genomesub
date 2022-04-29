@@ -1,0 +1,3 @@
+ASSEMBLIES: ["genome_A", "genome_B"]
+DIAMOND_DB: "databases/nr_uniref90_PAM30"
+ID_U: "1027"
