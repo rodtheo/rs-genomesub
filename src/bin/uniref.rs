@@ -1165,6 +1165,7 @@ fn main() {
         }
     }
 
+    info!("Writing new assembly at {:?}", &output_assembly);
     
     let mut writer_cor = fasta::Writer::new(output_assembly);
     
