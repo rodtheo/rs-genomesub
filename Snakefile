@@ -2,7 +2,7 @@ import os
 
 ASSEMBLIES = ["genome_A", "genome_B"]
 WORKDIR = os.getcwd()
-DIAMOND_DB = "databases/pantoea_cor.faa"
+DIAMOND_DB = "databases/nr_uniref90_PAM30"
 
 
 rule all:
