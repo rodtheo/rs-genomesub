@@ -186,7 +186,7 @@ pub fn get_genomic_sequence(
     seq
 }
 
-fn main() {
+fn main() -> Result<(), std::io::Error> {
     // let cds_fasta = include_str!("../../genes_out.fa");
 
     // let input_path = PathBuf::from(&cds_fasta);
@@ -1165,7 +1165,7 @@ fn main() {
         }
     }
 
-    info!("Writing new assembly at {:?}", &output_assembly);
+    // info!("Writing new assembly at {:?}", &output_assembly);
     
     let mut writer_cor = fasta::Writer::new(output_assembly);
     
@@ -1210,4 +1210,5 @@ fn main() {
     // }
 
     // dbg!(reader_ena);
+    Ok(())
 }
