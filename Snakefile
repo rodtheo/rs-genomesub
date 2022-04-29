@@ -84,7 +84,7 @@ rule fixing_frameshift:
 	benchmark:
 		"results_{assembly}/framerust_res/benchmark.txt"
 	threads:
-		9
+		8
 	output:
 		cor="results_{assembly}/framerust_res/{assembly}_fixed.fa",
 		debug_seq="results_{assembly}/framerust_res/debug.fa"
