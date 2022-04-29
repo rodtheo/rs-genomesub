@@ -59,6 +59,8 @@ rule get_nucl_genes_from_tbl:
 rule diamond_search:
 	input:
 		genes="results_{assembly}/prokka_initial/{assembly}_sprok_genes.fa"
+	benchmark:
+		"results_{assembly}/prokka_initial/benchmark_diamond.txt"
 	output:
 		"results_{assembly}/prokka_initial/output_diamond.txt"
 	params:
@@ -79,6 +81,8 @@ rule fixing_frameshift:
 		diamond="results_{assembly}/prokka_initial/output_diamond.txt",
 		genes="results_{assembly}/prokka_initial/{assembly}_sprok_genes.fa",
 		tbl="results_{assembly}/prokka_initial/{assembly}_sprok.tbl"
+	benchmark:
+		"results_{assembly}/framerust_res/benchmark.txt"
 	threads:
 		9
 	output:
