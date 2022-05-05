@@ -158,7 +158,7 @@ rule bedtools_intersect_counts_corrected:
 	output:
 		"results_{assembly}/analysis/pos_corrected_debug.count"
 	shell:
-		"bedtools intersect -s -a {input.bed_after_polish} -b results_{assembly}/prokka_corrected/{wildcards.assembly}_eprok.gff -c -F 0.75 > {output}"
+		"bedtools intersect -s -a {input.bed_after_polish} -b results_{wildcards.assembly}/prokka_corrected/{wildcards.assembly}_eprok.gff -c -F 0.75 > {output}"
 
 rule bedtools_intersect_counts_before:
 	input:
@@ -166,7 +166,7 @@ rule bedtools_intersect_counts_before:
 	output:
 		"results_{assembly}/analysis/pos_initial_debug.count"
 	shell:
-		"bedtools intersect -s -a {input.bed_before_polish} -b results_{assembly}/prokka_initial/{wildcards.assembly}_sprok.gff -c -F 0.75 > {output}"
+		"bedtools intersect -s -a {input.bed_before_polish} -b results_{wildcards.assembly}/prokka_initial/{wildcards.assembly}_sprok.gff -c -F 0.75 > {output}"
 
 
 rule calculate_confusion_metrics:
