@@ -152,9 +152,28 @@ rule mapping_debug_corrected:
 		cut -f1,2,3,4,5,6  > {output}
 		"""
 
+rule correct_gff:
+	input:
+		genome="results_{assembly}/prokka_initial/{assembly}_sprok.tbl",
+		tbl="results_{assembly}/prokka_initial/{assembly}_sprok.fsa"
+	output:
+		"results_{assembly}/prokka_initial/gff_corrected.txt"
+	shell:
+		"./target/debug/tbltk togff -g {input.genome} {input.tbl} && touch {output}"
+
+rule correct_gff_after:
+	input:
+		genome="results_{assembly}/prokka_corrected/{assembly}_eprok.tbl",
+		tbl="results_{assembly}/prokka_corrected/{assembly}_eprok.fsa"
+	output:
+		"results_{assembly}/prokka_corrected/gff_corrected.txt"
+	shell:
+		"./target/debug/tbltk togff -g {input.genome} {input.tbl} && touch {output}"
+
 rule bedtools_intersect_counts_corrected:
 	input:
-		bed_after_polish="results_{assembly}/analysis/pos_corrected_debug.bed"
+		bed_after_polish="results_{assembly}/analysis/pos_corrected_debug.bed",
+		in_gff="results_{assembly}/prokka_corrected/gff_corrected.txt"
 	output:
 		"results_{assembly}/analysis/pos_corrected_debug.count"
 	shell:
@@ -162,7 +181,8 @@ rule bedtools_intersect_counts_corrected:
 
 rule bedtools_intersect_counts_before:
 	input:
-		bed_before_polish="results_{assembly}/analysis/pos_initial_debug.bed"
+		bed_before_polish="results_{assembly}/analysis/pos_initial_debug.bed",
+		in_gff="results_{assembly}/prokka_initial/gff_corrected.txt"
 	output:
 		"results_{assembly}/analysis/pos_initial_debug.count"
 	shell:
