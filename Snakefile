@@ -86,16 +86,15 @@ rule fixing_frameshift:
 	threads:
 		8
 	output:
-		assembly="results_{assembly}/framerust_res/{assembly}_fixed.fa",
-		debug_seq="results_{assembly}/framerust_res/debug.fa"
-	shell:
-		"./target/debug/uniref --debug -a {input.genome} \
-		-b {input.diamond} -g {input.genes} -o {output.assembly} \
-		{input.tbl} -t {threads}"
+		"results_{assembly}/framerust_res/out.txt"
+	run:
+		shell("./target/debug/uniref --debug -a {input.genome} \
+		-b {input.diamond} -g {input.genes} -o results_{wildcards.assembly}/framerust_res/{wildcards.assembly}_fixed.fa \
+		{input.tbl} -t {threads} && touch {output}")
 
 rule prokka_new_annotation:
 	input:
-		"results_{assembly}/framerust_res/{assembly}_fixed.fa"
+		"results_{assembly}/framerust_res/out.txt"
 	params:
 		outdir="results_{assembly}/prokka_corrected",
 		PREFIX="{assembly}_eprok",
@@ -109,7 +108,7 @@ rule prokka_new_annotation:
 		--force --kingdom Bacteria \
 		--outdir /db/{params.outdir} --prefix {params.PREFIX} \
 		--genus Pantoea --locustag LZP \
-		/db/{input}"
+		/db/results_{wildcards.assembly}/framerust_res/{wildcards.assembly}_fixed.fa"
 
 rule index_genome_corrected:
 	input:
@@ -123,13 +122,15 @@ rule mapping_debug_initial:
 	input:
 		genome="results_{assembly}/prokka_initial/{assembly}_sprok.fsa",
 		genome_fai="results_{assembly}/prokka_initial/{assembly}_sprok.fsa.fai",
-		debug_seq="results_{assembly}/framerust_res/debug.fa"
+		debug_dumb="results_{assembly}/framerust_res/out.txt"
+	params:
+		debug_seq="results_{assembly}/framerust_res/debug.fasta"
 	output:
 		"results_{assembly}/analysis/pos_initial_debug.bed"
 	shell:
 		"""
 		minimap2 -cx asm5 --cs=long -t 1 {input.genome} \
-			{input.debug_seq} | awk "{{ if( !(\$12<60) ) print \$0 }}" | paftools.js splice2bed - | \
+			{params.debug_seq} | awk "{{ if( !(\$12<60) ) print \$0 }}" | paftools.js splice2bed - | \
 			cut -f1,2,3,4,5,6  > {output}
 		"""
 
@@ -137,13 +138,15 @@ rule mapping_debug_corrected:
 	input:
 		genome="results_{assembly}/prokka_corrected/{assembly}_eprok.fsa",
 		genome_fai="results_{assembly}/prokka_corrected/{assembly}_eprok.fsa.fai",
-		debug_seq="results_{assembly}/framerust_res/debug.fa"
+		debug_dumb="results_{assembly}/framerust_res/out.txt"
 	output:
 		"results_{assembly}/analysis/pos_corrected_debug.bed"
+	params:
+		debug_seq="results_{assembly}/framerust_res/debug.fasta"
 	shell:
 		"""
 		minimap2 -cx asm5 --cs=long -t 1 {input.genome} \
-		{input.debug_seq} | "{{ if( !(\$12<60) ) print \$0 }}" | paftools.js splice2bed - | \
-		cut -f1,2,3,4,5,6  > {output}"
+		{params.debug_seq} | awk "{{ if( !(\$12<60) ) print \$0 }}" | paftools.js splice2bed - | \
+		cut -f1,2,3,4,5,6  > {output}
 		"""
 

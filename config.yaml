@@ -1,4 +1,4 @@
-ASSEMBLIES: ["genome_A", "genome_B"]
+ASSEMBLIES: ["bsubtilis_pb", "efaecalis_pb", "paeruginosa_pb", "saureus_pb", "k12_pb", "lmonocytogenes_pb", "senterica_pb", "pantoea_homopolished"]
 DIAMOND_DB: "nr_uniref90_PAM30"
 DIAMOND_DB_DIR_PARENT: "/array3/rodtheo/databases/"
 ID_U: "1027"
