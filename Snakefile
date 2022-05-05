@@ -15,6 +15,8 @@ rule all:
 		expand("results_{assembly}/analysis/pos_corrected_debug.bed",
 					assembly=ASSEMBLIES),
 		expand("results_{assembly}/analysis/pos_initial_debug.bed",
+					assembly=ASSEMBLIES),
+		expand("results_{assembly}/analysis/confusion_metrics.txt",
 					assembly=ASSEMBLIES)
 
 rule prokka_annotation:
@@ -150,3 +152,28 @@ rule mapping_debug_corrected:
 		cut -f1,2,3,4,5,6  > {output}
 		"""
 
+rule bedtools_intersect_counts_corrected:
+	input:
+		bed_after_polish="results_{assembly}/analysis/pos_corrected_debug.bed"
+	output:
+		"results_{assembly}/analysis/pos_corrected_debug.count"
+	shell:
+		"bedtools intersect -s -a {input.bed_after_polish} -b results_{assembly}/prokka_corrected/{wildcards.assembly}_eprok.gff -c -F 0.75 > {output}"
+
+rule bedtools_intersect_counts_before:
+	input:
+		bed_before_polish="results_{assembly}/analysis/pos_initial_debug.bed"
+	output:
+		"results_{assembly}/analysis/pos_initial_debug.count"
+	shell:
+		"bedtools intersect -s -a {input.bed_before_polish} -b results_{assembly}/prokka_initial/{wildcards.assembly}_sprok.gff -c -F 0.75 > {output}"
+
+
+rule calculate_confusion_metrics:
+	input:
+		bed_counts_before_polish="results_{assembly}/analysis/pos_initial_debug.count",
+		bed_counts_after_polish="results_{assembly}/analysis/pos_corrected_debug.count"
+	output:
+		"results_{assembly}/analysis/confusion_metrics.txt"
+	shell:
+		"Rscript --vanilla calculate_confusion_matrix.R {input.bed_counts_before_polish} {input.bed_counts_after_polish} > {output}"
