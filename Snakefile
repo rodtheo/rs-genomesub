@@ -154,8 +154,8 @@ rule mapping_debug_corrected:
 
 rule correct_gff:
 	input:
-		genome="results_{assembly}/prokka_initial/{assembly}_sprok.tbl",
-		tbl="results_{assembly}/prokka_initial/{assembly}_sprok.fsa"
+		genome="results_{assembly}/prokka_initial/{assembly}_sprok.fsa",
+		tbl="results_{assembly}/prokka_initial/{assembly}_sprok.tbl"
 	output:
 		"results_{assembly}/prokka_initial/gff_corrected.txt"
 	shell:
@@ -163,8 +163,8 @@ rule correct_gff:
 
 rule correct_gff_after:
 	input:
-		genome="results_{assembly}/prokka_corrected/{assembly}_eprok.tbl",
-		tbl="results_{assembly}/prokka_corrected/{assembly}_eprok.fsa"
+		genome="results_{assembly}/prokka_corrected/{assembly}_eprok.fsa",
+		tbl="results_{assembly}/prokka_corrected/{assembly}_eprok.tbl"
 	output:
 		"results_{assembly}/prokka_corrected/gff_corrected.txt"
 	shell:
