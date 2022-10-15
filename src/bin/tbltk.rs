@@ -1,3 +1,86 @@
+/*!
+
+# What is it
+
+It's an acronym for `tbl toolkit`, hence a suite of tools to manipulate NCBI's Feature Table Format (normally, files with suffix *.tbl).
+Access the tbl specs on https://www.ncbi.nlm.nih.gov/genbank/feature_table/
+
+The toolkit consists of sub-commands that are invoked as follows:
+
+```text
+tbltk [sub-command] [options]
+```
+
+Given a tbl file, one would invoke the sub-command `tofasta` in order to convert annotated genes in tbl to nucleotide sequences.
+If the intention is to convert a tbl to GFF3 invoke sub-command `togff`.
+
+Each sub-command has it's arguments.
+
+## Sub-command `tofasta`
+
+`tbltk tofasta` converts gene features in a tbl file to nucleotide sequences (FASTA format).
+
+### Usage, option summary and outputs
+
+Usage:
+
+```bash
+tbltk tofasta --genome <GENOME> <TBL>
+```
+
+| Option | Description |
+|---|---|
+| **\--genome** | Genome file in fasta format to extract gene sequences |
+| **\<TBL\>** | File to get the gene annotations (it must correspond to the annotation of the cited genome) |
+
+Output:
+- gene sequences to STDOUT
+- number of genes extracted in STDERR
+
+### Examples
+
+1. Extract CDS annotations from tbl and output their nt sequences.
+
+```console
+$ head examples/input_diamond_sample.tbl
+>Feature Pantoea_bnut
+219	617	CDS
+            db_xref	COG:COG0012
+            gene	ychF_1
+            inference	ab initio prediction:Prodigal:002006
+            inference	similar to AA sequence:UniProtKB:P0ABU2
+            locus_tag	EFABLAPO_00001
+            product	Ribosome-binding ATPase YchF
+827	1264	CDS
+            db_xref	COG:COG0582
+
+$ head example/input_multi_genome.fa
+>Ps_genome
+ACAGGCGGCGCTGGAGAAATGTCTGCCTCATCTGGAAAAACGCGGC...
+
+$ samtools faidx example/input_multi_genome.fa
+
+// output extracted nt to stdout
+$ tbltk tofasta -g examples/input_diamond_sample_genome.fa examples/input_diamond_sample.tbl
+Number of CDS = 100
+>EFABLAPO_00001
+GTGCCAGTCTGCGCCTCTGTCGAATCTGATATCGCCGAACTGGAAGACGAAGATCGTGACGAGTTTATGG
+CCGAGCTGGGCATCGAAGAGCCAG...
+
+// OR redirect extracted nt to a file
+$ tbltk tofasta -g examples/input_diamond_sample_genome.fa examples/input_diamond_sample.tbl > examples/input_diamond_sample_cds.fa
+Number of CDS = 100
+
+```
+
+## Sub-command `togff`
+
+YET TO WRITE
+
+
+*/
+
+use assert_cmd::*;
 use bio::alphabets::dna;
 use noodles::gff::record::Strand;
 use std::fs::File;
@@ -8,6 +91,8 @@ use noodles::gff::{
     self as gff,
     record::{attributes::Entry, Attributes},
 };
+
+use noodles::core::position::Position;
 
 use bio::io::fasta::{self, IndexedReader};
 use std::path::Path;
@@ -181,8 +266,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                     let gff_record = gff::Record::builder()
                         .set_reference_sequence_name(record.seqid.clone())
-                        .set_start(feat.start as i32)
-                        .set_end(feat.end as i32)
+                        .set_start(Position::new(feat.start as usize).unwrap())
+                        .set_end(Position::new(feat.end as usize).unwrap())
                         .set_type(feat.feature_key.to_string())
                         .set_strand(feat.strand)
                         .set_attributes(Attributes::from(vec_attributes))
@@ -208,6 +293,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .expect("Unable to write data.");
         }
 
+        // Some(("diamond_wrapper", sub_matches)) => {
+        //     unimplemented!();
+        //     let mut cmd = assert_cmd::Command::new("ls").arg("-l").arg("-a").unwrap();
+        // }
         _ => unreachable!("Exhausted list of subcommands and subcommand_required prevents `None`"),
     }
 

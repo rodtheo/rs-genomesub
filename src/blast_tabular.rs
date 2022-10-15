@@ -54,6 +54,14 @@ impl Ord for BlastFeature {
     }
 }
 
+#[derive(Debug, Default, Clone)]
+pub struct MultipleBlastFeatures {
+    // sseqid Subject Seq - id
+    pub id: String,
+
+    pub bfeatures: Vec<BlastFeature>,
+}
+
 /// Utility function to nom parser that matches a string of characters up to a tab or new line
 fn everything_but_tab_or_nl(input: &str) -> IResult<&str, String> {
     let re = regex::Regex::new(r"[^\t\n]+").unwrap();
