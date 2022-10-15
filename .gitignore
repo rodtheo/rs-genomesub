@@ -6,3 +6,8 @@
 /*.tbl
 /*.fsa.fai
 /*.fsa
+/data
+/results_*
+/databases
+.snakemake
+nohup.out
