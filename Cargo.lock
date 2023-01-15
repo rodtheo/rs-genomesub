@@ -760,6 +760,7 @@ version = "0.27.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c14a3149bba9ffbce03cee96455e4e4887c981f614ea28bd82cfe19182913191"
 dependencies = [
+ "noodles-bgzf",
  "noodles-core",
  "noodles-gff",
  "noodles-vcf",
@@ -1473,9 +1474,9 @@ checksum = "8ccb82d61f80a663efe1f787a51b16b5a51e3314d6ac365b08639f52387b33f3"
 
 [[package]]
 name = "uniprot"
-version = "0.5.1"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2e1dc59f109b24df53eed2e7b93aec36fcf25b40a63e66f6578cc5531ac95f24"
+checksum = "47977f3bc4a8cef6f1d343438c85d3011220e8878a44b4d963c77406bcfcae54"
 dependencies = [
  "chrono",
  "crossbeam-channel",
@@ -1484,8 +1485,6 @@ dependencies = [
  "memchr",
  "num_cpus",
  "quick-xml",
- "thiserror",
- "url",
 ]
 
 [[package]]
