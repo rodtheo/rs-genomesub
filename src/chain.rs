@@ -47,10 +47,10 @@ pub struct Chains {
 }
 
 impl Chains {
-    pub fn to_lift(&self) -> AnnotMap<String, liftover::LiftBlock> {
+    pub fn to_lift(&self) -> AnnotMap<String, liftover::LiftBlockBuild> {
         // let mut chains: HashMap<String, liftover::LiftBlock> = HashMap::new();
         let mut chains = AnnotMap::new();
-
+        dbg!("CHAIN RECORDS = ", &self.n_records);
         for chain in self.records.iter() {
             let coords_ins = chain
                 .alignments
@@ -63,7 +63,7 @@ impl Chains {
                             .chain(std::iter::repeat(Del).take(dt))
                             .chain(std::iter::repeat(Ins).take(dq))
                     } else {
-                        std::iter::repeat(Ins)
+                        std::iter::repeat(Match)
                             .take(aln.size)
                             .chain(std::iter::repeat(Del).take(0))
                             .chain(std::iter::repeat(Ins).take(0))
@@ -87,8 +87,9 @@ impl Chains {
             );
 
             let block = liftover::LiftBlock::new(&coords_ins);
+            let block_build = liftover::LiftBlockBuild::new(&block);
 
-            chains.insert_at(block, &contig_seq_entry);
+            chains.insert_at(block_build, &contig_seq_entry);
             // chains.insert(chain.tName.clone(), block);
         }
 
@@ -273,7 +274,7 @@ mod tests {
         let (inp, res) = parse_input(chainout).unwrap();
 
         // dbg!(inp);
-        // dbg!(res);
+        dbg!(res);
 
         // let res = Reader::from_file(path);
         assert_eq!(1, 1);
