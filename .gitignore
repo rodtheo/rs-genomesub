@@ -16,6 +16,7 @@
 /*.chain
 /*.fai
 /*.tbi
+/.ipynb_checkpoints
 /data
 /results_*
 /databases
