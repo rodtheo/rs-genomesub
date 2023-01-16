@@ -11,7 +11,7 @@
 /*.fasta
 /*.gz
 /*.py
-/*.md
+/*.ipynb
 /*.log
 /*.chain
 /*.fai
