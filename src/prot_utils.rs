@@ -161,6 +161,18 @@ pub fn parse_input(input: &str) -> IResult<&str, Vec<GeneticCodeTable>> {
     Ok((input, par))
 }
 
+impl<'a> GeneticCodeTable<'a> {
+    pub fn get_aa_vec(&self, aa: &u8) -> Vec<&str> {
+        let amino = self.table.get_vec(aa).unwrap();
+        let mut codon_array = vec![];
+        for c in amino {
+            let str_codon = std::str::from_utf8(c).unwrap();
+            codon_array.push(str_codon);
+        }
+        codon_array
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -171,41 +183,13 @@ mod tests {
 
         let (_inp, res) = parse_input(fblastout).unwrap();
 
-        for tb in res {
-            let amino = tb.table.get_vec(&b'F').unwrap();
-            for c in amino {
-                let str_codon = std::str::from_utf8(c).unwrap();
-                println!("{:?}", &str_codon);
-            }
-        }
+        let tb_standard: Vec<GeneticCodeTable> =
+            res.iter().filter(|e| e.id == 1).cloned().collect();
 
-        // dbg!(inp);
+        let mut codons_Q = tb_standard[0].get_aa_vec(&b'Q');
 
-        // let res = Reader::from_file(path);
-        assert_eq!(1, 1);
-        // assert_eq!(res.unwrap().n_records, 2);
+        codons_Q.sort();
+
+        assert_eq!(codons_Q, vec!["CAA", "CAG"]);
     }
-
-    // #[test]
-    // fn test_iter() {
-    //     let fblastout = include_str!("../output_diamond.txt");
-
-    //     let (inp, res) = parse_input(fblastout).unwrap();
-
-    //     // let count_possible_frameshifts = res
-    //     //     .into_iter()
-    //     //     .tuple_windows()
-    //     //     .filter(|(s1, s2)| s1.sseqid == s2.sseqid)
-    //     //     .count();
-
-    //     let count_possible_frameshifts = res
-    //         .into_iter()
-    //         .tuple_windows()
-    //         .filter(|(s1, s2)| (s1.sseqid == s2.sseqid) & (s2.qframe == 2))
-    //         .collect::<Vec<(BlastFeature, BlastFeature)>>();
-
-    //     dbg!(count_possible_frameshifts);
-
-    //     assert_eq!(1, 1);
-    // }
 }

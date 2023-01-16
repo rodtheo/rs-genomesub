@@ -200,6 +200,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "14c189c53d098945499cdfa7ecc63567cf3886b3332b312a5b4585d8d3a6a610"
 
 [[package]]
+name = "bytes"
+version = "1.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ec8a7b6a70fde80372154c65702f00a0f56f3e1c36abbc6c440484be248856db"
+
+[[package]]
 name = "cc"
 version = "1.0.72"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -256,9 +262,9 @@ dependencies = [
 
 [[package]]
 name = "crossbeam-channel"
-version = "0.5.2"
+version = "0.5.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e54ea8bc3fb1ee042f5aace6e3c6e025d3874866da222930f70ce62aceba0bfa"
+checksum = "c2dd04ddaf88237dc3b8d8f9a3c1004b506b54b3313403944054d23c0870c521"
 dependencies = [
  "cfg-if",
  "crossbeam-utils",
@@ -558,9 +564,9 @@ checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 
 [[package]]
 name = "libc"
-version = "0.2.112"
+version = "0.2.135"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1b03d17f364a3a042d5e5d46b053bbbf82c92c9430c592dd4c064dc6ee997125"
+checksum = "68783febc7782c6c5cb401fbda4de5a9898be1762314da0bb2c10ced61f18b0c"
 
 [[package]]
 name = "libflate"
@@ -750,83 +756,75 @@ dependencies = [
 
 [[package]]
 name = "noodles"
-version = "0.20.0"
+version = "0.27.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "388ef87567c627363464b2a9cdb657d30e2feedcf3e33ebf220f5f053533c11b"
+checksum = "c14a3149bba9ffbce03cee96455e4e4887c981f614ea28bd82cfe19182913191"
 dependencies = [
+ "noodles-bgzf",
+ "noodles-core",
  "noodles-gff",
  "noodles-vcf",
 ]
 
 [[package]]
 name = "noodles-bgzf"
-version = "0.10.0"
+version = "0.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "94745a1cf9ca1f711a8ad5bc3d8154244b34dbd85c9abc9796cc01c2c57c83f5"
+checksum = "8e5c5c36c59b29fa6441e593187b2cc48bd0c483c3c825ae846318ba51747302"
 dependencies = [
  "byteorder",
+ "bytes",
+ "crossbeam-channel",
  "flate2",
 ]
 
 [[package]]
 name = "noodles-core"
-version = "0.5.0"
+version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "315bd1041c73bb5e6b6e9ddadc23e700f290077c940d81806aa3959c524d9c27"
-dependencies = [
- "noodles-sam",
-]
+checksum = "ba58b998fe20d6e7f0c67386c1901daaf8fd2d2c4e7cfb5cf5f47ed22d96a8c8"
 
 [[package]]
 name = "noodles-csi"
-version = "0.5.1"
+version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "50a4f6bbc7b79aaf05c43dc58a95d077ae09304663b86380bfd6c1ae7b749dc1"
+checksum = "12611457c5ef6aff23d10fc786097a977e5e6791859393c27b4d03077d3a7a67"
 dependencies = [
  "bit-vec",
  "byteorder",
  "noodles-bgzf",
+ "noodles-core",
 ]
 
 [[package]]
 name = "noodles-gff"
-version = "0.5.0"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "983d9440448efe98db0c6c911e0ba8f3f93d6c642ffaa5d5072feeb9f0b60206"
+checksum = "82a9bd11ae4cc76621e56feff0a964d3e4fcf2fe704b96b0be57091f08cd4dc4"
 dependencies = [
+ "noodles-core",
  "percent-encoding",
 ]
 
 [[package]]
-name = "noodles-sam"
-version = "0.13.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "006b808bf1777c8c30123bca65daf38e917be3710b5bddb298d4683579d5acd5"
-dependencies = [
- "bitflags",
- "indexmap",
- "noodles-bgzf",
- "rustc-hash",
-]
-
-[[package]]
 name = "noodles-tabix"
-version = "0.8.1"
+version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "81f1cbcf379f4a50273480e6d871f7eee5726c241ed050e09aeb3ba0afca254b"
+checksum = "e0dcfe23cbfbae213f84fa39bf5c6f5a581ede4ec7a35f70f761bcdf487b6daa"
 dependencies = [
  "bit-vec",
  "byteorder",
  "indexmap",
  "noodles-bgzf",
+ "noodles-core",
  "noodles-csi",
 ]
 
 [[package]]
 name = "noodles-vcf"
-version = "0.14.1"
+version = "0.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "259fb0052e7557be4c57b920110d7b1f4b9028cefb46b20a0303921f6c081995"
+checksum = "1ae56fbb72f7306723cb350c79772699d745e7d28d8c9da4fec647880c02a9e4"
 dependencies = [
  "indexmap",
  "memchr",
@@ -1188,9 +1186,12 @@ dependencies = [
  "assert_cmd",
  "bio",
  "bio-types",
+ "bv",
  "clap",
  "dissimilar",
+ "flate2",
  "itertools",
+ "itertools-num",
  "libflate",
  "log",
  "min-max",
@@ -1208,13 +1209,8 @@ dependencies = [
  "simplelog",
  "uniprot",
  "ureq",
+ "which",
 ]
-
-[[package]]
-name = "rustc-hash"
-version = "1.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "08d43f7aa6b08d49f382cde6a7982047c3426db949b1424bc4b7ec9ae12c6ce2"
 
 [[package]]
 name = "rustc_version"
@@ -1478,9 +1474,9 @@ checksum = "8ccb82d61f80a663efe1f787a51b16b5a51e3314d6ac365b08639f52387b33f3"
 
 [[package]]
 name = "uniprot"
-version = "0.5.1"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2e1dc59f109b24df53eed2e7b93aec36fcf25b40a63e66f6578cc5531ac95f24"
+checksum = "47977f3bc4a8cef6f1d343438c85d3011220e8878a44b4d963c77406bcfcae54"
 dependencies = [
  "chrono",
  "crossbeam-channel",
@@ -1489,8 +1485,6 @@ dependencies = [
  "memchr",
  "num_cpus",
  "quick-xml",
- "thiserror",
- "url",
 ]
 
 [[package]]
@@ -1639,6 +1633,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "552ceb903e957524388c4d3475725ff2c8b7960922063af6ce53c9a43da07449"
 dependencies = [
  "webpki",
+]
+
+[[package]]
+name = "which"
+version = "4.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1c831fbbee9e129a8cf93e7747a82da9d95ba8e16621cae60ec2cdc849bacb7b"
+dependencies = [
+ "either",
+ "libc",
+ "once_cell",
 ]
 
 [[package]]

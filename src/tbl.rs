@@ -28,14 +28,14 @@ use std::fmt;
 use std::path::Path;
 
 /// A set of annotation table Records, each for chr/contig/sequence.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Reader {
     records: Vec<Record>,
     n_records: usize,
 }
 
 /// An annotation table (.tbl) Record
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Record {
     pub seqid: String,
     pub table_id: String,
@@ -43,7 +43,7 @@ pub struct Record {
 }
 
 /// An annotation table (.tbl) record
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Feature {
     pub start: u64,
     pub end: u64,
@@ -52,7 +52,7 @@ pub struct Feature {
     pub qualifiers: ListOrderedMultimap<String, String>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum FeatureType {
     CDS,
     Gene,
@@ -122,6 +122,7 @@ pub fn parse_input(input: &str) -> IResult<&str, Record> {
     // let initial = tag(">Feature ");
     let both = separated_pair(everything_but_whitespace, space1, everything_but_whitespace);
     let only_one = alphanumeric_underscore;
+    // let (input, (seqid, table_name)) = terminated(alt((both, only_seqid)), newline)(input)?;
     let (input, (seqid, table_name)) = terminated(alt((both, only_seqid)), newline)(input)?;
 
     let feat = tuple((

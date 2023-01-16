@@ -32,6 +32,10 @@ pub struct BlastFeature {
     pub qframe: i16,
     // btop Blast traceback operations(BTOP)*
     pub btop: String,
+    // qlen: Query length
+    pub qlen: usize,
+    // slen: Subject length
+    pub slen: usize,
 }
 
 impl PartialEq for BlastFeature {
@@ -52,6 +56,14 @@ impl Ord for BlastFeature {
     fn cmp(&self, other: &Self) -> Ordering {
         self.qstart.cmp(&other.qstart)
     }
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct MultipleBlastFeatures {
+    // sseqid Subject Seq - id
+    pub id: String,
+
+    pub bfeatures: Vec<BlastFeature>,
 }
 
 /// Utility function to nom parser that matches a string of characters up to a tab or new line
@@ -85,7 +97,10 @@ pub fn parse_input(input: &str) -> IResult<&str, Vec<BlastFeature>> {
         everything_but_tab_or_nl,
         tab,
         everything_but_tab_or_nl,
-        line_ending,
+        tab,
+        everything_but_tab_or_nl,
+        tab,
+        everything_but_tab_or_nl,
     ));
 
     let map_qualifiers = map(line, |x| BlastFeature {
@@ -98,6 +113,8 @@ pub fn parse_input(input: &str) -> IResult<&str, Vec<BlastFeature>> {
         send: x.12.parse::<u64>().unwrap(),
         qframe: x.14.parse::<i16>().unwrap(),
         btop: x.16,
+        qlen: x.18.parse::<usize>().unwrap(),
+        slen: x.20.parse::<usize>().unwrap(),
     });
 
     // let term = terminated(map_qualifiers, opt(line_ending));
@@ -141,11 +158,7 @@ mod tests {
 
         let (inp, res) = parse_input(fblastout).unwrap();
 
-        // dbg!(res);
-
-        // let res = Reader::from_file(path);
-        assert_eq!(1, 1);
-        // assert_eq!(res.unwrap().n_records, 2);
+        assert_eq!(res.len(), 2);
     }
 
     #[test]

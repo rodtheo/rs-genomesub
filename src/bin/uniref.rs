@@ -4,12 +4,13 @@ extern crate ureq;
 
 use multipeek::multipeek;
 use bio::alignment::pairwise::*;
+use bio::data_structures::rank_select::RankSelect;
 use bio::alignment::AlignmentOperation;
 use bio::alignment::AlignmentOperation::*;
 use bio::alphabets::dna;
 use bio::io::fasta::{self, IndexedReader, Record};
 use bio::alignment::sparse::*;
-use noodles::vcf::{self as vcf, header::Contig, record::reference_bases::Base, record::Position};
+use noodles::vcf::{self as vcf, record::reference_bases::Base, record::Position, header::record::value::{map::Contig, Map}};
 // use nom::error::dbg_dmp;
 // use rs_genomesub::tbl::Feature;
 // use uniprot::uniprot::DbReference;
@@ -18,12 +19,13 @@ use ureq::Response;
 extern crate rs_genomesub;
 use crate::rs_genomesub::blast_tabular::*;
 use crate::rs_genomesub::tbl;
+use crate::rs_genomesub::liftover::*;
 
 use itertools::Itertools;
 use std::cmp::Ordering;
 use std::collections::HashMap;
 
-use std::fs;
+use std::{fs, io};
 use std::fs::File;
 // use std::io::Write;
 use std::path::Path;
@@ -37,6 +39,7 @@ use std::collections::HashSet;
 use std::error::Error;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
+use std::io::prelude::*;
 
 use protein_translate::translate;
 
@@ -53,12 +56,21 @@ pub fn get_record_from_ena(response: Response) -> Result<Record, Box<dyn Error>>
     let reader = libflate::gzip::Decoder::new(response.into_reader()).unwrap();
 
     let entry = uniprot::uniprot::parse(std::io::BufReader::new(reader))
-        .next()
-        .unwrap();
+        .next();
+        // .unwrap();
+    
+    // let entry_b = match entry {
+    //     None => return Err(Box::new(e)),
+    //     Some(res) => res 
+    // }
 
     let r = match entry {
-        Ok(r) => r,
-        Err(e) => return Err(Box::new(e)),
+        Some(rr) => match rr {
+            Ok(r) => r,
+            Err(e) => return Err(Box::new(e))
+        },
+        // Ok(r) => r,
+        None => return Err("bad protein retrieval")?,
     };
 
     let mut prop_ena_id: Option<String> = None;
@@ -294,7 +306,7 @@ fn main() -> Result<(), std::io::Error> {
 
     let input_path = PathBuf::from(&input_path_genes_str);
 
-    let mut input = File::open(input_path).unwrap();
+    let mut input = File::open(input_path).expect(&format!("Couldn't open file {}. Please verify if the path is correct.", &input_path_genes_str));
     let res = fasta::Reader::new(&mut input);
 
     let mut hash_cds_fasta = HashMap::new();
@@ -900,7 +912,7 @@ fn main() -> Result<(), std::io::Error> {
                                     let record = vcf::Record::builder()
                                         // .set_chromosome(chr_id.parse().unwrap())
                                         .set_chromosome(read_id.parse().unwrap())
-                                        .set_position(Position::try_from(assembly_pos).unwrap())
+                                        .set_position(Position::from(assembly_pos as usize))
                                         .set_reference_bases(refbase.parse().unwrap())
                                         .set_alternate_bases(alternate_bases.parse().unwrap())
                                         .build()
@@ -989,9 +1001,12 @@ fn main() -> Result<(), std::io::Error> {
                                     
                                     output_fasta_hash.insert(ena_id);
                                 }
+                                // Comment next two lines to avoid writing the sequence with frameshift (locus) and
+                                // resulting corrected sequence to "debug.fasta"
+
                                 // output_fasta.push(ena.clone());
-                                // output_fasta.push(boundary_cor_seqs);
-                                // output_fasta.push(record_bondary);
+                                output_fasta.push(record_bondary);
+                                output_fasta.push(boundary_cor_seqs);
                                 // if let Some(debug) = matches.value_of("debug") {
                                 //     match hash_cds_fasta.get(&bf1.qseqid) {
                                 //         Some(record) => output_fasta.push(record.clone()),
@@ -1048,10 +1063,13 @@ fn main() -> Result<(), std::io::Error> {
                                     }
                                 });
                                 // .collect::<Vec<BoundarySeq>>();
+
+                            let liftover_block = LiftBlock::new(&alignment.operations);
+
                             {
                                 let mut seqs_to_change =
                                     seqs_to_change_child.lock().expect("Erro no fasta");
-                                seqs_to_change.push(seqs_change);
+                                seqs_to_change.push((seqs_change, liftover_block));
                             }
                         }
 
@@ -1115,10 +1133,15 @@ fn main() -> Result<(), std::io::Error> {
     vcf_records_to_write.sort_by_key(|r: &vcf::Record| r.position());
 
     let mut header = vcf::Header::builder();
+
+
+    
+
     for vcf_rec in vcf_records_to_write.iter() {
         let chr_id = vcf_rec.chromosome().to_string();
         if !contigs.contains(&chr_id) {
-            header = header.add_contig(Contig::new(chr_id.clone()));
+            let contig = Map::<Contig>::new(chr_id.parse().unwrap());
+            header = header.add_contig(contig.clone());
             // .build();
 
             contigs.insert(chr_id);
@@ -1135,24 +1158,33 @@ fn main() -> Result<(), std::io::Error> {
     // }
 
     let mut seqs_to_change = seqs_to_change_ref.lock().unwrap();
-    seqs_to_change.par_sort_by(|a, b| b.start_assembly.cmp(&a.start_assembly));
-
+    seqs_to_change.par_sort_by(|(a_bs, a_bv), (b_bs, b_bv)| a_bs.contig.cmp(&b_bs.contig).then(b_bs.start_assembly.cmp(&a_bs.start_assembly)));
+    
     info!("Generating corrected Assembly.");
     let input_assembly = File::open(input_path_genome).unwrap();
     let assembly = fasta::Reader::new(&input_assembly);
     let mut new_fasta_assembly = Vec::new();
     let mut assembly_seq;
+    let mut assembly_contigs = Vec::new();
+    let mut bv_assembly_struct;
     for reco in assembly.records() {
         if let Ok(rec) = reco {
             assembly_seq = rec.seq().to_vec();
-            for seq in seqs_to_change.iter() {
-                if seq.contig == rec.id() {
+            bv_assembly_struct = LiftBlock::empty_matches(assembly_seq.len());
+            let a_contig_name = rec.id().to_string().clone();
+            assembly_contigs.push(a_contig_name);
+            for (seq_bs, seq_bv) in seqs_to_change.iter() {
+                if seq_bs.contig == rec.id() {
                     assembly_seq = [
-                        &assembly_seq[..seq.start_assembly as usize],
-                        &seq.boundary_cor_seq,
-                        &assembly_seq[seq.end_assembly as usize + 1..],
+                        &assembly_seq[..seq_bs.start_assembly as usize - 1],
+                        &seq_bs.boundary_cor_seq,
+                        &assembly_seq[seq_bs.end_assembly as usize + 1..],
                     ]
                     .concat();
+
+                    // Manipulating bit-vectors to perform Lift-Over operations after
+                    bv_assembly_struct = bv_assembly_struct.insert_block(seq_bv.clone(), 
+                    seq_bs.start_assembly, seq_bs.end_assembly+1);
                 }
             }
             let read_id_cor = format!("{}_cor", rec.id());
@@ -1161,21 +1193,137 @@ fn main() -> Result<(), std::io::Error> {
             let new_contig_cor =
                 Record::with_attrs(&read_id_cor[..], description_cor, &assembly_seq);
 
-            new_fasta_assembly.push(new_contig_cor);
+            new_fasta_assembly.push((new_contig_cor, bv_assembly_struct));
         }
     }
+    
 
     // info!("Writing new assembly at {:?}", &output_assembly);
     let output_assembly = File::create(output_path_genome).unwrap();
     let mut writer_cor = fasta::Writer::new(output_assembly);
+
+    let mut map2lift: HashMap::<String, (LiftBlock, RankSelect, RankSelect)> = HashMap::new();
     
-    for r in new_fasta_assembly.iter() {
+    for (r, rlift) in new_fasta_assembly.iter() {
         writer_cor
             .write_record(r)
             .expect("Error while writing FASTA output");
+        let (bv_rs_deletion, bv_rs_insertion) = rlift.build_rankselects();
+        map2lift.insert(r.id().to_string(), (rlift.clone(), bv_rs_deletion, bv_rs_insertion));
     }
 
     info!("Writing new assembly");
+
+
+    // Write BED - interval 1-Based [Start, END)
+    // One line with past coordinates (seq.contig, seq.start_assembly, seq.end_assembly+1)
+    // Calculate new coordinates (liftover-like)
+    if matches.is_present("debug") {
+        warn!("CREATING BED FILE FOR FURTHER SANITY CHECKS!");
+
+        // Sort by chr name + position
+        seqs_to_change.par_sort_by(
+            |(a_bs, a_bv), (b_bs, b_bv)| {
+                a_bs.contig.cmp(&b_bs.contig).then(a_bs.start_assembly.cmp(&b_bs.start_assembly))
+            });
+        
+        let mut out_past_bed = PathBuf::from(&output_path_assembly_str);
+        out_past_bed.set_file_name("past_coordinates_boundaries.bed");
+        let display = out_past_bed.display();
+        warn!("Writing reference (before correction) loci list into: {}", &display);
+        // Open a file in write-only mode, returns `io::Result<File>`
+        let mut file_past_bed = match File::create(&out_past_bed) {
+            Err(why) => panic!("couldn't create {}: {}", display, why),
+            Ok(file) => file,
+        };
+        for (seq_bs, seq_bv) in seqs_to_change.iter() {
+                writeln!(file_past_bed, "{}\t{}\t{}", seq_bs.contig, 
+                seq_bs.start_assembly as usize, seq_bs.end_assembly as usize + 1)?;
+        }
+
+        // Dummy elements inserted to easy calculation 
+        // of new boundaries positions (in created corrected assembly)
+        // for contig_name in &assembly_contigs {
+        //     seqs_to_change.push(
+        //         (BoundarySeq {
+        //             contig: contig_name.clone(),
+        //             start_assembly: 0,
+        //             end_assembly: 0,
+        //             boundary_cor_seq: Vec::with_capacity(0),
+        //         }, LiftBlock::empty_matches(1)));
+        // }
+
+
+
+        let mut out_new_bed = PathBuf::from(&output_path_assembly_str);
+        out_new_bed.set_file_name("new_coordinates_boundaries.bed");
+        let display = out_new_bed.display();
+        warn!("Writing lifted-over corrected positions (i.e. after correction, maps to post-corrected assembly) into: {}", &display);
+        // Open a file in write-only mode, returns `io::Result<File>`
+        let mut file_new_bed = match File::create(&out_new_bed) {
+            Err(why) => panic!("couldn't create {}: {}", display, why),
+            Ok(file) => file,
+        };
+
+        
+        for (seq_bs, seq_bv) in seqs_to_change.iter() {
+            let read_id_cor = format!("{}_cor", seq_bs.contig);
+            let (liftmap_chr, bv_rs_deletion, bv_rs_insertion) = map2lift.get(&read_id_cor).unwrap();
+            println!("====== LIFTOVER2REF ====== ref {}:{}-{}", &seq_bs.contig, &seq_bs.start_assembly, &seq_bs.end_assembly);
+            for i in (0..6).collect::<Vec<u64>>().iter() {
+                let lifted_start = liftmap_chr.liftover2ref_empower_rs(seq_bs.start_assembly-3+i, bv_rs_deletion, bv_rs_insertion).unwrap();
+                let lifted_end = liftmap_chr.liftover2ref_empower_rs(seq_bs.end_assembly-3+i, bv_rs_deletion, bv_rs_insertion).unwrap();
+                println!("{}: {}\t{}-{}", i, &read_id_cor, lifted_start, lifted_end)
+            }
+            println!("====== LIFTOVER2ASSEMBLY ====== ref {}:{}-{}", &seq_bs.contig, &seq_bs.start_assembly, &seq_bs.end_assembly);
+            for i in (0..6).collect::<Vec<u64>>().iter() {
+                let lifted_start = liftmap_chr.liftover2assembly_empower_rs(seq_bs.start_assembly-3+i, bv_rs_deletion, bv_rs_insertion).unwrap();
+                let lifted_end = liftmap_chr.liftover2assembly_empower_rs(seq_bs.end_assembly-3+i, bv_rs_deletion, bv_rs_insertion).unwrap();
+                println!("{}: {}\t{}-{}", i,  &read_id_cor, lifted_start, lifted_end)
+            }
+            println!("========================== ");
+            println!("************************** ");
+            let lifted_start = liftmap_chr.liftover2ref_empower_rs(seq_bs.start_assembly, bv_rs_deletion, bv_rs_insertion).unwrap();
+            let lifted_end = liftmap_chr.liftover2ref_empower_rs(seq_bs.end_assembly + 1, bv_rs_deletion, bv_rs_insertion).unwrap();
+            writeln!(file_new_bed, "{}\t{}\t{}", read_id_cor, 
+            lifted_start as usize, lifted_end as usize + 1)?;
+        }
+
+        // let mut end_lifted = 0;
+        // let mut end_track = 0;
+        // let mut inter = 0;
+        // for contig_name in assembly_contigs {
+            
+        //     for (i, (locI, locII)) in seqs_to_change.iter().tuple_windows().enumerate() {
+        //         if (locI.contig == contig_name && locII.contig == contig_name) {
+        //             warn!("DANDO CERTO {:?} - {:?}", &locII.start_assembly, &locII.end_assembly);
+        //             if (i == 0) {
+        //                 inter =  locII.start_assembly - locI.end_assembly;
+        //                 end_track = 0;
+        //             } else {
+        //                 inter = locII.start_assembly - locI.end_assembly;
+        //                 end_track = end_lifted;
+        //             }
+    
+        //             let start_lifted = (end_track + inter) as usize;
+        //             let end_lifted = start_lifted + locII.contig.len() + 1;
+    
+        //             writeln!(file_new_bed, "{}\t{}\t{}", contig_name, 
+        //                                                 start_lifted, end_lifted)?;
+        //             }
+        //          else {
+        //             end_lifted = 0;
+        //             end_track = 0;
+        //             inter = 0;
+        //         }
+        //     }
+                
+        // }
+
+        
+
+    }
+
     // dbg!(&seqs_to_change);
 
     // let query_url = format!(
